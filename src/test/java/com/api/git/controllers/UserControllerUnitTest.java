@@ -28,6 +28,9 @@ import java.nio.charset.StandardCharsets;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.mockito.BDDMockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(value = {UserController.class, UserClient.class, RepositoryClient.class})
 @ImportAutoConfiguration({FeignAutoConfiguration.class})
@@ -46,23 +49,33 @@ public class UserControllerUnitTest {
     ObjectMapper mapper = new ObjectMapper();
 
     @Test
-    void dadoUmNomeDeUsuario_quandoChamarGetUser_entaoRetornar200_eUserResponse() throws Exception {
+    void givenUsername_whenCallingGetUser_thenReturn200_andUserResponse() throws Exception {
         UserResponse userResponse = UserResponseMother.getUserResponse();
         String username = "blabla";
         String userResponseJson = mapper.writeValueAsString(userResponse);
 
         given(userClient.getUser(BDDMockito.any(String.class))).willReturn(userResponse);
 
-        //given(userClient.getUser(BDDMockito.any(String.class))).willThrow(FeignException.class);
-
-        MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.get("/usr/" + username))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andDo(MockMvcResultHandlers.print())
+        MvcResult mvcResult = mockMvc.perform(get("/usr/" + username))
+                .andExpect(status().isOk())
+                .andDo(print())
                 .andReturn();
 
         String content = mvcResult.getResponse().getContentAsString(UTF_8);
 
         BDDAssertions.assertThat(content).isEqualToIgnoringWhitespace(userResponseJson);
+    }
+
+    @Test
+    void givenUsername_whenCallingGetUser_thenReturn404_andFeignException() throws Exception {
+
+        given(userClient.getUser(BDDMockito.any(String.class))).willThrow(FeignException.class);
+
+        mockMvc.perform(get("/usr/"))
+                .andExpect(status().isNotFound())
+                .andDo(print())
+                .andReturn();
+
     }
 
 
