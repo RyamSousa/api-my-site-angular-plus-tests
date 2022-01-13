@@ -3,12 +3,15 @@ package com.api.git.controllers;
 
 import com.api.git.clients.RepositoryClient;
 import com.api.git.clients.UserClient;
-import com.api.git.model.UserResponseMother;
+import com.api.git.model.ResponseMother;
+import com.api.git.models.RepositoryResponse;
 import com.api.git.models.UserResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import feign.FeignException;
+import feign.Response;
 import org.assertj.core.api.BDDAssertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.BDDMockito;
@@ -21,10 +24,10 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.mockito.BDDMockito.*;
@@ -50,7 +53,7 @@ public class UserControllerUnitTest {
 
     @Test
     void givenUsername_whenCallingGetUser_thenReturn200_andUserResponse() throws Exception {
-        UserResponse userResponse = UserResponseMother.getUserResponse();
+        UserResponse userResponse = ResponseMother.getUserResponse();
         String username = "blabla";
         String userResponseJson = mapper.writeValueAsString(userResponse);
 
@@ -78,5 +81,22 @@ public class UserControllerUnitTest {
 
     }
 
+    @Test
+    void givenUsername_whenCallinggetRepositories_thenReturn200_andRepositoryResponse() throws Exception {
+        List<RepositoryResponse> repositoryResponse = ResponseMother.getRepositoryResponse();
+        String username = "username";
+        String repositoryResponseJson = mapper.writeValueAsString(repositoryResponse);
+
+        given(repositoryClient.getRepositories(BDDMockito.any(String.class))).willReturn(repositoryResponse);
+
+        MvcResult mvcResult = mockMvc.perform(get("/usr/" + username + "/repos"))
+                .andExpect(status().isOk())
+                .andDo(print())
+                .andReturn();
+
+        String content = mvcResult.getResponse().getContentAsString(UTF_8);
+
+        BDDAssertions.assertThat(content).isEqualTo(repositoryResponseJson);
+    }
 
 }
